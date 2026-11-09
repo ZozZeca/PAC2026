@@ -99,7 +99,7 @@ describe('PUT /api/clients/:id', () => {
       .set('Authorization', autorizacao)
       .send({ name: 'Daniela Souza', phone: '47 98888-0000' });
 
-    expect(resposta.status).toBe(PUT);
+    expect(resposta.status).toBe(200);
     expect(resposta.body.name).toBe('Daniela Souza');
   });
 });
@@ -112,6 +112,6 @@ describe('DELETE /api/clients/:id', () => {
       .delete('/api/clients/7')
       .set('Authorization', autorizacao);
 
-    expect(resposta.status).toBe(DELETE);
+    expect(resposta.status).toBe(204);
   });
 });
