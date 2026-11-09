@@ -89,3 +89,29 @@ describe('POST /api/clients', () => {
     expect(pool.query).not.toHaveBeenCalled();
   });
 });
+
+describe('PUT /api/clients/:id', () => {
+  test('atualiza um cliente', async () => {
+    pool.query.mockResolvedValueOnce([{}]);
+
+    const resposta = await request(app)
+      .put('/api/clients/7')
+      .set('Authorization', autorizacao)
+      .send({ name: 'Daniela Souza', phone: '47 98888-0000' });
+
+    expect(resposta.status).toBe(PUT);
+    expect(resposta.body.name).toBe('Daniela Souza');
+  });
+});
+
+describe('DELETE /api/clients/:id', () => {
+  test('remove um cliente', async () => {
+    pool.query.mockResolvedValueOnce([{}]);
+
+    const resposta = await request(app)
+      .delete('/api/clients/7')
+      .set('Authorization', autorizacao);
+
+    expect(resposta.status).toBe(DELETE);
+  });
+});
