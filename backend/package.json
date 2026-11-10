@@ -32,6 +32,9 @@
       "!src/utils/runSql.js",
       "!src/utils/createAdmin.js",
       "!src/utils/seedTestData.js"
-    ]
+    ],
+    "coverageThreshold": {
+      "global": { "lines": 75 }
+    }
   }
 }
