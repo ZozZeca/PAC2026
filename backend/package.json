@@ -10,7 +10,8 @@
     "create-admin": "node src/utils/createAdmin.js",
     "test-data": "node src/utils/seedTestData.js",
     "test": "jest",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "change-password": "node src/utils/changePassword.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -31,10 +32,13 @@
       "src/**/*.js",
       "!src/utils/runSql.js",
       "!src/utils/createAdmin.js",
-      "!src/utils/seedTestData.js"
+      "!src/utils/seedTestData.js",
+      "!src/utils/changePassword.js"
     ],
     "coverageThreshold": {
-      "global": { "lines": 75 }
+      "global": {
+        "lines": 75
+      }
     }
   }
 }

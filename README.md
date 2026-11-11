@@ -51,7 +51,7 @@ npm run seed
 Criar o primeiro usuário (login):
 
 ```
-npm run create-admin -- "Márcia" marcia@atelier.com senha123
+npm run create-admin -- "Márcia" marcia@atelier.com UMA-SENHA-FORTE
 ```
 
 Subir a API:

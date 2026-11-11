@@ -5,29 +5,9 @@ const pool = require('../config/db');
 
 const router = express.Router();
 
-router.post('/register', async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Nome, email e senha são obrigatórios.' });
-    }
-
-    const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
-    if (existing.length > 0) {
-      return res.status(409).json({ message: 'Já existe um usuário com este email.' });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    const [result] = await pool.query(
-      'INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)',
-      [name, email, passwordHash]
-    );
-
-    res.status(201).json({ id: result.insertId, name, email });
-  } catch (err) {
-    res.status(500).json({ message: 'Erro ao registrar usuário.', error: err.message });
-  }
-});
+// Não existe rota de cadastro: o sistema é de uso interno da confeitaria.
+// Usuários novos são criados só por quem tem acesso ao servidor, com:
+//   npm run create-admin -- "Nome" email@exemplo.com senha
 
 router.post('/login', async (req, res) => {
   try {

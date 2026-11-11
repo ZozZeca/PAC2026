@@ -88,4 +88,22 @@ describe('proteção das rotas (middleware de autenticação)', () => {
       .set('Authorization', 'Bearer token-inventado');
     expect(resposta.status).toBe(401);
   });
+
+  test('token assinado com outro segredo responde 401', async () => {
+    const tokenFalsificado = jwt.sign({ id: 1, name: 'Invasor' }, 'troque-esta-chave-em-producao');
+    const resposta = await request(app)
+      .get('/api/clients')
+      .set('Authorization', `Bearer ${tokenFalsificado}`);
+    expect(resposta.status).toBe(401);
+  });
+});
+
+describe('cadastro de usuários', () => {
+  test('não existe rota pública de cadastro (uso interno)', async () => {
+    const resposta = await request(app)
+      .post('/api/auth/register')
+      .send({ name: 'Invasor', email: 'x@x.com', password: '12345678' });
+    expect(resposta.status).toBe(404);
+    expect(pool.query).not.toHaveBeenCalled();
+  });
 });
