@@ -108,15 +108,49 @@ describe('POST /api/orders', () => {
     expect(conexao.release).toHaveBeenCalled();
   });
 
-  test('sem itens responde 400 e não começa a transação', async () => {
+  test('sem itens responde 400 e nem abre conexão com o banco', async () => {
     const resposta = await request(app)
       .post('/api/orders')
       .set('Authorization', autorizacao)
       .send({ client_id: 1, delivery_date: '2026-11-20', items: [] });
 
     expect(resposta.status).toBe(400);
-    expect(conexao.beginTransaction).not.toHaveBeenCalled();
-    expect(conexao.release).toHaveBeenCalled();
+    expect(resposta.body.message).toBe('O pedido precisa ter ao menos um item.');
+    // a validação acontece antes: o banco nem é chamado
+    expect(pool.getConnection).not.toHaveBeenCalled();
+  });
+
+  test('quantidade negativa responde 400', async () => {
+    const resposta = await request(app)
+      .post('/api/orders')
+      .set('Authorization', autorizacao)
+      .send({ client_id: 1, delivery_date: '2026-11-20', items: [{ product_id: 4, quantity: -2 }] });
+
+    expect(resposta.status).toBe(400);
+    expect(pool.getConnection).not.toHaveBeenCalled();
+  });
+
+  test('data de entrega que não existe (31/02) responde 400', async () => {
+    const resposta = await request(app)
+      .post('/api/orders')
+      .set('Authorization', autorizacao)
+      .send({ client_id: 1, delivery_date: '2026-02-31', items: [{ product_id: 4, quantity: 1 }] });
+
+    expect(resposta.status).toBe(400);
+  });
+
+  test('cliente que não existe vira uma mensagem clara (400)', async () => {
+    // o MySQL recusa porque o client_id não existe na tabela clients
+    conexao.query.mockRejectedValueOnce(Object.assign(new Error('fk'), { code: 'ER_NO_REFERENCED_ROW_2' }));
+
+    const resposta = await request(app)
+      .post('/api/orders')
+      .set('Authorization', autorizacao)
+      .send({ client_id: 999, delivery_date: '2026-11-20', items: [{ product_id: 4, quantity: 1 }] });
+
+    expect(resposta.status).toBe(400);
+    expect(resposta.body.message).toBe('O cliente, produto ou ingrediente informado não existe.');
+    expect(conexao.rollback).toHaveBeenCalled();
   });
 
   test('se der erro no meio, desfaz tudo (rollback)', async () => {

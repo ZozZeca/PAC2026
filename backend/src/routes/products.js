@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../config/db');
 const authMiddleware = require('../middleware/auth');
+const { validateProduct } = require('../utils/validation');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -16,31 +17,34 @@ async function getRecipe(productId) {
   return rows;
 }
 
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const [rows] = await pool.query('SELECT * FROM products ORDER BY name ASC');
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ message: 'Erro ao listar produtos.', error: err.message });
+    next(err); // o tratador de erros central (middleware/errorHandler.js) responde
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req, res, next) => {
   try {
     const [rows] = await pool.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ message: 'Produto não encontrado.' });
     const recipe = await getRecipe(req.params.id);
     res.json({ ...rows[0], recipe });
   } catch (err) {
-    res.status(500).json({ message: 'Erro ao buscar produto.', error: err.message });
+    next(err); // o tratador de erros central (middleware/errorHandler.js) responde
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', async (req, res, next) => {
+  // valida antes de abrir a transação: dado inválido nem chega no banco
+  const erro = validateProduct(req.body);
+  if (erro) return res.status(400).json({ message: erro });
+
   const connection = await pool.getConnection();
   try {
     const { name, unit, price, production_lead_days, recipe } = req.body;
-    if (!name) return res.status(400).json({ message: 'Nome é obrigatório.' });
 
     await connection.beginTransaction();
     const [result] = await connection.query(
@@ -62,13 +66,16 @@ router.post('/', async (req, res) => {
     res.status(201).json({ id: productId, name, unit, price, production_lead_days });
   } catch (err) {
     await connection.rollback();
-    res.status(500).json({ message: 'Erro ao criar produto.', error: err.message });
+    next(err); // o tratador de erros central (middleware/errorHandler.js) responde
   } finally {
     connection.release();
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', async (req, res, next) => {
+  const erro = validateProduct(req.body);
+  if (erro) return res.status(400).json({ message: erro });
+
   const connection = await pool.getConnection();
   try {
     const { name, unit, price, production_lead_days, recipe } = req.body;
@@ -94,18 +101,18 @@ router.put('/:id', async (req, res) => {
     res.json({ id: Number(productId), name, unit, price, production_lead_days });
   } catch (err) {
     await connection.rollback();
-    res.status(500).json({ message: 'Erro ao atualizar produto.', error: err.message });
+    next(err); // o tratador de erros central (middleware/errorHandler.js) responde
   } finally {
     connection.release();
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req, res, next) => {
   try {
     await pool.query('DELETE FROM products WHERE id = ?', [req.params.id]);
     res.status(204).send();
   } catch (err) {
-    res.status(500).json({ message: 'Erro ao remover produto.', error: err.message });
+    next(err); // o tratador de erros central (middleware/errorHandler.js) responde
   }
 });
 

@@ -6,7 +6,7 @@ const { computeProductionForDate, today } = require('../utils/production');
 const router = express.Router();
 router.use(authMiddleware);
 
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const currentDate = today();
 
@@ -53,7 +53,7 @@ router.get('/', async (req, res) => {
       estimated_revenue_month: Number(monthRevenue.month_revenue)
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erro ao carregar dashboard.', error: err.message });
+    next(err); // o tratador de erros central (middleware/errorHandler.js) responde
   }
 });
 

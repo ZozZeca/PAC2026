@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../config/db');
 const authMiddleware = require('../middleware/auth');
+const { validateOrder } = require('../utils/validation');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -16,7 +17,7 @@ async function getOrderItems(orderId) {
   return rows;
 }
 
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const { start_date, end_date, status } = req.query;
     let sql = `SELECT o.*, c.name AS client_name, c.phone AS client_phone,
@@ -42,11 +43,11 @@ router.get('/', async (req, res) => {
     const [rows] = await pool.query(sql, params);
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ message: 'Erro ao listar pedidos.', error: err.message });
+    next(err); // o tratador de erros central (middleware/errorHandler.js) responde
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req, res, next) => {
   try {
     const [rows] = await pool.query(
       `SELECT o.*, c.name AS client_name, c.phone AS client_phone
@@ -58,18 +59,18 @@ router.get('/:id', async (req, res) => {
     const items = await getOrderItems(req.params.id);
     res.json({ ...rows[0], items });
   } catch (err) {
-    res.status(500).json({ message: 'Erro ao buscar pedido.', error: err.message });
+    next(err); // o tratador de erros central (middleware/errorHandler.js) responde
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', async (req, res, next) => {
+  // valida antes de abrir a transação: dado inválido nem chega no banco
+  const erro = validateOrder(req.body);
+  if (erro) return res.status(400).json({ message: erro });
+
   const connection = await pool.getConnection();
   try {
     const { client_id, delivery_date, status, notes, items } = req.body;
-    if (!client_id || !delivery_date || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ message: 'Cliente, data de entrega e ao menos um item são obrigatórios.' });
-    }
-
     await connection.beginTransaction();
     const [result] = await connection.query(
       'INSERT INTO orders (client_id, delivery_date, status, notes) VALUES (?, ?, ?, ?)',
@@ -92,13 +93,17 @@ router.post('/', async (req, res) => {
     res.status(201).json({ id: orderId, client_id, delivery_date, status: status || 'pendente', notes, items: orderItems });
   } catch (err) {
     await connection.rollback();
-    res.status(500).json({ message: 'Erro ao criar pedido.', error: err.message });
+    next(err); // o tratador de erros central (middleware/errorHandler.js) responde
   } finally {
     connection.release();
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', async (req, res, next) => {
+  // na edição, os itens podem não vir (aí os itens antigos continuam)
+  const erro = validateOrder(req.body, { itemsRequired: false });
+  if (erro) return res.status(400).json({ message: erro });
+
   const connection = await pool.getConnection();
   try {
     const orderId = req.params.id;
@@ -128,18 +133,18 @@ router.put('/:id', async (req, res) => {
     res.json({ id: Number(orderId), client_id, delivery_date, status, notes, items: orderItems });
   } catch (err) {
     await connection.rollback();
-    res.status(500).json({ message: 'Erro ao atualizar pedido.', error: err.message });
+    next(err); // o tratador de erros central (middleware/errorHandler.js) responde
   } finally {
     connection.release();
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req, res, next) => {
   try {
     await pool.query('DELETE FROM orders WHERE id = ?', [req.params.id]);
     res.status(204).send();
   } catch (err) {
-    res.status(500).json({ message: 'Erro ao remover pedido.', error: err.message });
+    next(err); // o tratador de erros central (middleware/errorHandler.js) responde
   }
 });
 

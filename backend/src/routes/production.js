@@ -1,23 +1,30 @@
 const express = require('express');
 const authMiddleware = require('../middleware/auth');
 const { computeProductionForDate, today, toDateString } = require('../utils/production');
+const { isValidDate } = require('../utils/validation');
 
 const router = express.Router();
 router.use(authMiddleware);
 
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const productionDate = req.query.date || today();
+    if (!isValidDate(productionDate)) {
+      return res.status(400).json({ message: 'Data inválida (use o formato AAAA-MM-DD).' });
+    }
     const result = await computeProductionForDate(productionDate);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ message: 'Erro ao calcular produção.', error: err.message });
+    next(err); // o tratador de erros central (middleware/errorHandler.js) responde
   }
 });
 
-router.get('/range', async (req, res) => {
+router.get('/range', async (req, res, next) => {
   try {
     const start = req.query.start_date || today();
+    if (!isValidDate(start)) {
+      return res.status(400).json({ message: 'Data inicial inválida (use o formato AAAA-MM-DD).' });
+    }
     const days = Math.min(Number(req.query.days) || 7, 30);
 
     const results = [];
@@ -32,7 +39,7 @@ router.get('/range', async (req, res) => {
 
     res.json(results);
   } catch (err) {
-    res.status(500).json({ message: 'Erro ao calcular produção do período.', error: err.message });
+    next(err); // o tratador de erros central (middleware/errorHandler.js) responde
   }
 });
 

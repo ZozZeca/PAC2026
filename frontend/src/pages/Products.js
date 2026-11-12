@@ -84,8 +84,14 @@ export default function Products() {
 
   async function handleDelete(id) {
     if (!window.confirm('Remover este produto?')) return;
-    await api.delete(`/products/${id}`);
-    loadProducts();
+    setError('');
+    try {
+      await api.delete(`/products/${id}`);
+      loadProducts();
+    } catch (err) {
+      // ex.: produto que está em algum pedido não pode ser removido (409)
+      setError(err.response?.data?.message || 'Erro ao remover produto.');
+    }
   }
 
   function handleCancelEdit() {

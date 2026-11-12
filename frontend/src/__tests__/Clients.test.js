@@ -90,3 +90,17 @@ test('se a API recusar, mostra a mensagem de erro', async () => {
 
   expect(await screen.findByText('Nome é obrigatório.')).toBeInTheDocument();
 });
+
+test('cliente com pedidos não é removido e a mensagem da API aparece', async () => {
+  api.delete.mockRejectedValueOnce({ response: { status: 409, data: { message: 'Não é possível remover: este registro está sendo usado.' } } });
+  window.confirm = jest.fn(() => true);
+  const usuario = userEvent.setup();
+  render(<Clients />);
+  await screen.findByText('Ana Souza');
+
+  await usuario.click(screen.getAllByRole('button', { name: 'Remover' })[0]);
+
+  expect(await screen.findByText('Não é possível remover: este registro está sendo usado.')).toBeInTheDocument();
+  // o cliente continua na lista
+  expect(screen.getByText('Ana Souza')).toBeInTheDocument();
+});

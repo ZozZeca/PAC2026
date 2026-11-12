@@ -9,6 +9,7 @@ const ingredientsRoutes = require('./routes/ingredients');
 const ordersRoutes = require('./routes/orders');
 const productionRoutes = require('./routes/production');
 const dashboardRoutes = require('./routes/dashboard');
+const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
@@ -29,10 +30,8 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Rota não encontrada.' });
 });
 
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ message: 'Erro interno do servidor.' });
-});
+// Tratador de erros central: registra no log e responde com uma mensagem clara.
+app.use(errorHandler);
 
 // Exporta o app sem ligar o servidor. Quem liga é o server.js.
 // Assim os testes conseguem usar o app sem abrir a porta 3001.

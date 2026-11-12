@@ -53,8 +53,14 @@ export default function Clients() {
 
   async function handleDelete(id) {
     if (!window.confirm('Remover este cliente?')) return;
-    await api.delete(`/clients/${id}`);
-    loadClients(search);
+    setError('');
+    try {
+      await api.delete(`/clients/${id}`);
+      loadClients(search);
+    } catch (err) {
+      // ex.: cliente com pedidos não pode ser removido (a API responde 409)
+      setError(err.response?.data?.message || 'Erro ao remover cliente.');
+    }
   }
 
   function handleCancelEdit() {

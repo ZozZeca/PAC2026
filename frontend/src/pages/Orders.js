@@ -115,8 +115,13 @@ export default function Orders() {
 
   async function handleDelete(id) {
     if (!window.confirm('Remover este pedido?')) return;
-    await api.delete(`/orders/${id}`);
-    loadOrders();
+    setError('');
+    try {
+      await api.delete(`/orders/${id}`);
+      loadOrders();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Erro ao remover pedido.');
+    }
   }
 
   function handleCancelEdit() {

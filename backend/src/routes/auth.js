@@ -9,7 +9,7 @@ const router = express.Router();
 // Usuários novos são criados só por quem tem acesso ao servidor, com:
 //   npm run create-admin -- "Nome" email@exemplo.com senha
 
-router.post('/login', async (req, res) => {
+router.post('/login', async (req, res, next) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -35,7 +35,7 @@ router.post('/login', async (req, res) => {
 
     res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (err) {
-    res.status(500).json({ message: 'Erro ao autenticar.', error: err.message });
+    next(err); // o tratador de erros central (middleware/errorHandler.js) responde
   }
 });
 
